@@ -32,8 +32,7 @@ def get_patch_energy_map(img, W, H, s=3):
     return enBig + enSmall - enLeft - enUp
 
 # Yields top left coords of patches
-def create_patch_coords_generator(ref_img, W, H, ratio=0.05):
-    step = 4
+def create_patch_coords_generator(ref_img, W, H, ratio=0.05, step=3):
     pem = get_patch_energy_map(ref_img, W, H, step)
     pem_flat = pem.flatten()
     pem_flat.sort()

@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import os
 from skimage.color import rgb2gray
+from extract_images import create_patch_coords_generator
 
 def create_filename_generator(ref_dir, distorted_dir, restored_dir):
     for ref_name in os.listdir(ref_dir):
@@ -23,15 +24,15 @@ def create_image_generator(ref_dir, distorted_dir, restored_dir):
         restored_imgs = list(map(lambda x: rgb2gray(imread(x)), restored_paths))
         yield ref_img, dist_img, restored_imgs
 
-def create_batch_generator(ref_dir, distorted_dir, restored_dir, W, H):
+def create_patch_generator(ref_dir, distorted_dir, restored_dir, W, H):
     image_gen = create_image_generator(ref_dir, distorted_dir, restored_dir)
     for ref_img, dist_img, restored_imgs in image_gen:
-        for k in range(ref_img.shape[0] // H):
-            for l in range(ref_img.shape[1] // W):
-                ref_batch = ref_img[k * H : (k+1) * H, l * W : (l+1) * W]
-                dist_batch = dist_img[k * H : (k+1) * H, l * W : (l+1) * W]
-                rest_batch = list(map(lambda x: x[k * H : (k+1) * H, l * W : (l+1) * W], restored_imgs))
-                yield ref_batch, dist_batch, rest_batch
+        patch_coords_gen = create_patch_coords_generator(ref_img, W, H, 0.05, 3)
+        for top, left in patch_coords_gen:
+            ref_patch  = ref_img [top : top + H, left : left + W]
+            dist_patch = dist_img[top : top + H, left : left + W]
+            rest_patch = list(map(lambda x: x[top : top + H, left : left + W], restored_imgs))
+            yield ref_patch, dist_patch, rest_patch
 
 from math import sqrt
 def mse(a, b):
@@ -45,17 +46,18 @@ def generate_dataset(ref_dir, distorted_dir, restored_dir, dataset_dir, W, H):
     labels_path = os.path.join(dataset_dir, 'labels.csv')
     filenames = []
     labels = []
-    batch_gen = create_batch_generator(ref_dir, distorted_dir, restored_dir, W, H)
+    patch_gen = create_patch_generator(ref_dir, distorted_dir, restored_dir, W, H)
     i = 0
-    for ref, dist, restored in batch_gen:
+    for ref, dist, restored in patch_gen:
         label = get_label(ref, restored)
         filename = str(i) + '.png'
         imsave(os.path.join(dataset_dir, filename), dist)
         filenames.append(filename)
         labels.append(label)
         i += 1
-        if (i % 100 == 0):
+        if (i % 10000 == 0):
             pd.DataFrame({'filename' : filenames, 'label' : labels}).set_index('filename').to_csv(labels_path)
+            print(i, 'patches have been created')
     pd.DataFrame({'filename' : filenames, 'label' : labels}).set_index('filename').to_csv(labels_path)
 
 data_dir      = 'data'
