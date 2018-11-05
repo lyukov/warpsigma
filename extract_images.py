@@ -22,7 +22,7 @@ def get_energy_of_subimage(cum_energy, r1, c1, r2, c2):
         enUp = cum_energy[r1 - 1, c2 -1]
     return enBig + enSmall - enLeft - enUp
 
-# (i, j) element have an energy value of subimage [i, i + H] x [j, j + W]
+# (i, j) element have an energy value of subimage [i*s, i*s + H] x [j*s, j*s + W]
 def get_patch_energy_map(img, W, H, s=3):
     cum_energy = get_cumulative_energy(img)
     enBig   = cum_energy[H - 1::s, W - 1::s]
