@@ -22,18 +22,18 @@ np.random.seed(42)
 
 class DataGenerator(keras.utils.Sequence):
     'Generates data for Keras'
-    def __init__(self, list_IDs, labels, dataset_dir, batch_size=32, dim=(31,31), n_channels=1,
+    def __init__(self, list_IDs, labels, dataset_fname, batch_size=32, dim=(31,31), n_channels=1,
                  n_classes=12, shuffle=True):
         'Initialization'
         self.dim = dim
         self.batch_size = batch_size
         self.labels = labels
-        self.dataset_dir = dataset_dir
+        self.dataset_fname = dataset_fname
         self.list_IDs = list_IDs
         self.n_channels = n_channels
         self.n_classes = n_classes
         self.shuffle = shuffle
-        data = np.fromfile(os.path.join(dataset_dir, 'dataset.npy'), dtype='uint16')
+        data = np.fromfile(dataset_fname, dtype='uint16')
         data = data.astype(float) / (2 ** 16 - 1)
         N = len(data) // np.prod(dim)
         self.data = data.reshape((N, *dim))
@@ -115,7 +115,7 @@ print("Validation", len(validation), ", Train", len(train), "N ", N)
 # Parameters
 params = {'dim': (31, 31),
           'batch_size': 64,
-          'dataset_dir' : os.path.join(data_dir, 'dataset'),
+          'dataset_fname' : os.path.join(dataset_dir, 'dataset1.npy'),
           'n_classes': 17,
           'n_channels': 1,
           'shuffle': True}
