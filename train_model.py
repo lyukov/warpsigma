@@ -33,6 +33,10 @@ class DataGenerator(keras.utils.Sequence):
         self.n_channels = n_channels
         self.n_classes = n_classes
         self.shuffle = shuffle
+        data = np.fromfile(os.path.join(dataset_dir, 'dataset.npy'), dtype='uint16')
+        data = data.astype(float) / (2 ** 16 - 1)
+        N = len(data) // np.prod(dim)
+        self.data = data.reshape((N, *dim))
         self.on_epoch_end()
 
     def __len__(self):
@@ -58,6 +62,9 @@ class DataGenerator(keras.utils.Sequence):
         if self.shuffle == True:
             np.random.shuffle(self.indexes)
 
+    def __load_image(self, ID):
+        return self.data[int(ID)]
+            
     def __data_generation(self, list_IDs_temp):
         'Generates data containing batch_size samples' # X : (n_samples, *dim, n_channels)
         # Initialization
@@ -67,8 +74,7 @@ class DataGenerator(keras.utils.Sequence):
         # Generate data
         for i, ID in enumerate(list_IDs_temp):
             # Store sample
-            sample_path = os.path.join(self.dataset_dir, ID)
-            sample = imread(sample_path) / (2 ** 16 - 1)
+            sample = self.__load_image(ID)
             sample = sample.reshape((*self.dim, self.n_channels))
             X[i,] = sample
 
@@ -97,14 +103,14 @@ def load_model(name):
 
 dataset_dir = 'data/dataset'
 labels_path = os.path.join(dataset_dir, 'labels.csv')
-data = pd.read_csv(labels_path).set_index('filename')
+data = pd.read_csv(labels_path).set_index('name')
 data = data.sample(frac=1)
 #data.hist()
 
 N = len(data)
 validation = list(data.index[:N // 5])
 train = list(data.index[N // 5:])
-print("Validation", len(validation), ", Train" len(train), "N ", N)
+print("Validation", len(validation), ", Train", len(train), "N ", N)
 
 # Parameters
 params = {'dim': (31, 31),
