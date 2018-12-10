@@ -22,8 +22,8 @@ np.random.seed(42)
 
 class DataGenerator(keras.utils.Sequence):
     'Generates data for Keras'
-    def __init__(self, list_IDs, labels, dataset_fname, batch_size=32, dim=(31,31), n_channels=1,
-                 n_classes=12, shuffle=True):
+    def __init__(self, list_IDs, labels, dataset_fname, batch_size=32, dim=(31,31),
+                 n_channels=1, shuffle=True):
         'Initialization'
         self.dim = dim
         self.batch_size = batch_size
@@ -31,7 +31,6 @@ class DataGenerator(keras.utils.Sequence):
         self.dataset_fname = dataset_fname
         self.list_IDs = list_IDs
         self.n_channels = n_channels
-        self.n_classes = n_classes
         self.shuffle = shuffle
         data = np.fromfile(dataset_fname, dtype='uint16')
         data = data.astype(float) / (2 ** 16 - 1)
@@ -69,7 +68,7 @@ class DataGenerator(keras.utils.Sequence):
         'Generates data containing batch_size samples' # X : (n_samples, *dim, n_channels)
         # Initialization
         X = np.empty((self.batch_size, *self.dim, self.n_channels))
-        y = np.empty((self.batch_size, self.n_classes))
+        y = np.empty((self.batch_size))
 
         # Generate data
         for i, ID in enumerate(list_IDs_temp):
@@ -81,8 +80,7 @@ class DataGenerator(keras.utils.Sequence):
             # Store class
             sigma_gt = self.labels[ID]
             k_gt = k_from_sigma(sigma_gt)
-            g_sigma = 1
-            y[i] = get_smoothed_y(k_gt, g_sigma, self.n_classes)
+            y[i] = k_gt
 
         return X, y
 
@@ -115,8 +113,7 @@ print("Validation", len(validation), ", Train", len(train), "N ", N)
 # Parameters
 params = {'dim': (31, 31),
           'batch_size': 64,
-          'dataset_fname' : os.path.join(dataset_dir, 'dataset1.npy'),
-          'n_classes': 17,
+          'dataset_fname' : os.path.join(dataset_dir, 'dataset.npy'),
           'n_channels': 1,
           'shuffle': True}
 
@@ -139,19 +136,20 @@ model.add(Flatten())
 model.add(Dense(128, activation='relu'))
 #model.add(Dense(64, activation='relu'))
 model.add(Dropout(0.5))
-model.add(Dense(17, activation='softmax'))
+model.add(Dense(17, activation='relu'))
+model.add(Dense(1,  activation='relu'))
 
-model.compile(loss='categorical_crossentropy',
+model.compile(loss='mean_squared_error',
               optimizer='adam',
-              metrics=['accuracy'])
+              metrics=['mean_absolute_error', 'mean_squared_error'])
 
 # Train model on dataset
 model.fit_generator(generator=training_generator,
                     validation_data=validation_generator,
                     use_multiprocessing=True,
                     workers=4,
-                    nb_epoch=10)
+                    nb_epoch=1)
 
 model_dir = 'models'
 
-save_model(model, 'model1')
+save_model(model, 'regr1')
