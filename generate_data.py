@@ -68,20 +68,13 @@ def generate_dataset(ref_dir, distorted_dir, restored_dir,
     np.array(data).tofile(dataset_fname)
 
 data_dir      = 'data'
-ref_dir       = os.path.join(data_dir, 'reference', 'train')
+ref_dir       = os.path.join(data_dir, 'reference')
 distorted_dir = os.path.join(data_dir, 'distorted')
 restored_dir  = os.path.join(data_dir, 'restored')
 dataset_dir   = os.path.join(data_dir, 'dataset')
 
-dataset_fname = os.path.join(dataset_dir, 'dataset_train.npy')
-labels_fname  = os.path.join(dataset_dir, 'labels_train.csv')
-
-generate_dataset(ref_dir, distorted_dir, restored_dir,
-                 dataset_fname, labels_fname, 31, 31, sigma=3.0)
-
-ref_dir       = os.path.join(data_dir, 'reference', 'val')
-dataset_fname = os.path.join(dataset_dir, 'dataset_val.npy')
-labels_fname  = os.path.join(dataset_dir, 'labels_val.csv')
+dataset_fname = os.path.join(dataset_dir, 'dataset_mse.npy')
+labels_fname  = os.path.join(dataset_dir, 'labels_mse.csv')
 
 generate_dataset(ref_dir, distorted_dir, restored_dir,
                  dataset_fname, labels_fname, 31, 31, sigma=3.0)

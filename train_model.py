@@ -143,12 +143,15 @@ model.compile(loss='mean_squared_error',
               optimizer='adam',
               metrics=['mean_absolute_error', 'mean_squared_error'])
 
+from keras.callbacks import CSVLogger
+
 # Train model on dataset
 model.fit_generator(generator=training_generator,
                     validation_data=validation_generator,
                     use_multiprocessing=True,
                     workers=4,
-                    nb_epoch=1)
+                    nb_epoch=1,
+                    callbacks=[CSVLogger(os.path.join(root_dir, 'regr1.csv'))])
 
 model_dir = 'models'
 
