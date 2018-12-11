@@ -5,6 +5,7 @@ import pandas as pd
 import os
 from skimage.color import rgb2gray
 from extract_images import create_patch_coords_generator
+from extract_images import create_patch_coords_generator_from_mse_dispersion
 
 def create_filename_generator(ref_dir, distorted_dir, restored_dir):
     for ref_name in os.listdir(ref_dir):
@@ -27,7 +28,11 @@ def create_image_generator(ref_dir, distorted_dir, restored_dir):
 def create_patch_generator(ref_dir, distorted_dir, restored_dir, W, H, sigma=3.0):
     image_gen = create_image_generator(ref_dir, distorted_dir, restored_dir)
     for ref_img, dist_img, restored_imgs in image_gen:
-        patch_coords_gen = create_patch_coords_generator(ref_img, W, H, 0.05, 3, sigma)
+        #patch_coords_gen = create_patch_coords_generator(ref_img, W, H, 0.05, 3, sigma)
+
+        patch_coords_gen = create_patch_coords_generator_from_mse_dispersion(
+            ref_img, restored_imgs, W, H, 0.05, 3)
+
         for top, left in patch_coords_gen:
             ref_patch  = ref_img [top : top + H, left : left + W]
             dist_patch = dist_img[top : top + H, left : left + W]
@@ -63,13 +68,20 @@ def generate_dataset(ref_dir, distorted_dir, restored_dir,
     np.array(data).tofile(dataset_fname)
 
 data_dir      = 'data'
-ref_dir       = os.path.join(data_dir, 'reference')
+ref_dir       = os.path.join(data_dir, 'reference', 'train')
 distorted_dir = os.path.join(data_dir, 'distorted')
 restored_dir  = os.path.join(data_dir, 'restored')
 dataset_dir   = os.path.join(data_dir, 'dataset')
 
-dataset_fname = os.path.join(dataset_dir, 'dataset1.npy')
-labels_fname  = os.path.join(dataset_dir, 'labels1.csv')
+dataset_fname = os.path.join(dataset_dir, 'dataset_train.npy')
+labels_fname  = os.path.join(dataset_dir, 'labels_train.csv')
+
+generate_dataset(ref_dir, distorted_dir, restored_dir,
+                 dataset_fname, labels_fname, 31, 31, sigma=3.0)
+
+ref_dir       = os.path.join(data_dir, 'reference', 'val')
+dataset_fname = os.path.join(dataset_dir, 'dataset_val.npy')
+labels_fname  = os.path.join(dataset_dir, 'labels_val.csv')
 
 generate_dataset(ref_dir, distorted_dir, restored_dir,
                  dataset_fname, labels_fname, 31, 31, sigma=3.0)
