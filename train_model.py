@@ -1,3 +1,5 @@
+################################################################################
+
 import numpy as np
 from skimage.io import imread, imsave, imshow
 import matplotlib.pyplot as plt
@@ -9,16 +11,22 @@ import keras
 from keras.models import Sequential
 from keras.layers import Dense, Activation, Flatten, Dropout
 from keras.layers import Convolution2D, MaxPooling2D
+from keras.callbacks import CSVLogger
+
+np.random.seed(42)
+
+################################################################################
 
 def k_from_sigma(s):
     return 4.0 * math.log2(s) + 4
+
 def sigma_from_k(k):
     return 2 ** (k / 4 - 1)
 
 def get_smoothed_y(mu, sigma, n_classes):
     return np.exp(-((np.array(range(n_classes)) - mu) ** 2) / (2 * sigma ** 2))
 
-np.random.seed(42)
+################################################################################
 
 class DataGenerator(keras.utils.Sequence):
     'Generates data for Keras'
@@ -84,6 +92,8 @@ class DataGenerator(keras.utils.Sequence):
 
         return X, y
 
+################################################################################
+
 def save_model(model, name):
     model_json = model.to_json()
     with open(os.path.join(model_dir, name + ".json"), "w") as json_file:
@@ -99,12 +109,25 @@ def load_model(name):
     # load weights into new model
     loaded_model.load_weights(os.path.join(model_dir, name + ".h5"))
 
-dataset_dir = 'data/dataset'
-labels_path = os.path.join(dataset_dir, 'labels.csv')
+################################################################################
+
+labels_fname  = 'labels_mse.csv'
+dataset_fname = 'dataset_mse.npy'
+
+# Data loading
+root_dir    = '.'
+data_dir    = os.path.join(root_dir, 'data')
+model_dir   = os.path.join(root_dir, 'models')
+dataset_dir = os.path.join(data_dir, 'dataset')
+labels_path = os.path.join(dataset_dir, labels_fname)
 data = pd.read_csv(labels_path).set_index('name')
-data = data.sample(frac=1)
+
+# Shuffle data before dividing to train and validation
+#data = data.sample(frac=1)
+
 #data.hist()
 
+# Dividing to train and validation
 N = len(data)
 validation = list(data.index[:N // 5])
 train = list(data.index[N // 5:])
@@ -113,7 +136,7 @@ print("Validation", len(validation), ", Train", len(train), "N ", N)
 # Parameters
 params = {'dim': (31, 31),
           'batch_size': 64,
-          'dataset_fname' : os.path.join(dataset_dir, 'dataset.npy'),
+          'dataset_fname' : os.path.join(dataset_dir, dataset_fname),
           'n_channels': 1,
           'shuffle': True}
 
@@ -123,6 +146,8 @@ labels = data.to_dict()['label']
 # Generators
 training_generator = DataGenerator(train, labels, **params)
 validation_generator = DataGenerator(validation, labels, **params)
+
+################################################################################
 
 # Design model
 model = Sequential()
@@ -143,7 +168,7 @@ model.compile(loss='mean_squared_error',
               optimizer='adam',
               metrics=['mean_absolute_error', 'mean_squared_error'])
 
-from keras.callbacks import CSVLogger
+################################################################################
 
 # Train model on dataset
 model.fit_generator(generator=training_generator,
@@ -153,6 +178,6 @@ model.fit_generator(generator=training_generator,
                     nb_epoch=1,
                     callbacks=[CSVLogger(os.path.join(root_dir, 'regr1.csv'))])
 
-model_dir = 'models'
-
 save_model(model, 'regr1')
+
+################################################################################
