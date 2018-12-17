@@ -18,7 +18,7 @@ np.random.seed(42)
 ################################################################################
 
 def k_from_sigma(s):
-    return 4.0 * math.log2(s) + 4
+    return 4.0 * np.log2(s) + 4
 
 def sigma_from_k(k):
     return 2 ** (k / 4 - 1)
@@ -111,26 +111,29 @@ def load_model(name):
 
 ################################################################################
 
-labels_fname  = 'labels_mse.csv'
-dataset_fname = 'dataset_mse.npy'
-
-# Data loading
 root_dir    = '.'
 data_dir    = os.path.join(root_dir, 'data')
 model_dir   = os.path.join(root_dir, 'models')
 dataset_dir = os.path.join(data_dir, 'dataset')
+
+# Data loading
+labels_fname  = 'labels_mse.csv'
+dataset_fname = 'dataset_mse.npy'
+
 labels_path = os.path.join(dataset_dir, labels_fname)
 data = pd.read_csv(labels_path).set_index('name')
 
 # Shuffle data before dividing to train and validation
 #data = data.sample(frac=1)
 
+# Shuffle labels
+#data['label'] = data['label'].sample(frac=1).reset_index()['label']
 #data.hist()
 
 # Dividing to train and validation
 N = len(data)
-validation = list(data.index[:N // 5])
-train = list(data.index[N // 5:])
+validation = list(data.index[:N // 6])
+train = list(data.index[N // 6:])
 print("Validation", len(validation), ", Train", len(train), "N ", N)
 
 # Parameters
@@ -151,33 +154,50 @@ validation_generator = DataGenerator(validation, labels, **params)
 
 # Design model
 model = Sequential()
-model.add(Convolution2D(32, (3, 3), activation='relu', input_shape=(31, 31, 1)))
-model.add(Convolution2D(32, (3, 3), activation='relu'))
-#model.add(Convolution2D(32, (3, 3), activation='relu'))
+model.add(Convolution2D(32, (3, 3), activation='relu', input_shape=(31, 31, 1),
+    kernel_initializer='normal'))
+model.add(Convolution2D(32, (3, 3), activation='relu',
+    kernel_initializer='normal'))
 model.add(MaxPooling2D())
 model.add(Dropout(0.25))
 
+model.add(Convolution2D(128, (13, 13), activation='relu',
+    kernel_initializer='normal'))
+model.add(Dropout(0.1))
+model.add(Convolution2D(17, (1, 1), activation='relu',
+    kernel_initializer='normal'))
+model.add(Dropout(0.4))
+model.add(Convolution2D(1, (1, 1), activation='relu',
+    kernel_initializer='normal'))
 model.add(Flatten())
-model.add(Dense(128, activation='relu'))
-#model.add(Dense(64, activation='relu'))
-model.add(Dropout(0.5))
-model.add(Dense(17, activation='relu'))
-model.add(Dense(1,  activation='relu'))
+
+print('Output shape:', model.output_shape)
+print('Parameters:', model.count_params())
 
 model.compile(loss='mean_squared_error',
               optimizer='adam',
-              metrics=['mean_absolute_error', 'mean_squared_error'])
+              metrics=['mean_absolute_error'])
 
 ################################################################################
 
-# Train model on dataset
-model.fit_generator(generator=training_generator,
-                    validation_data=validation_generator,
-                    use_multiprocessing=True,
-                    workers=4,
-                    nb_epoch=1,
-                    callbacks=[CSVLogger(os.path.join(root_dir, 'regr1.csv'))])
+model_name = 'regr1'
+log_path = os.path.join(root_dir, model_name + '.csv')
 
-save_model(model, 'regr1')
+# Train model on dataset
+history = model.fit_generator(
+    generator=training_generator,
+    validation_data=validation_generator,
+    use_multiprocessing=True,
+    workers=4,
+    nb_epoch=1,
+    callbacks=[CSVLogger(log_path)]
+)
+
+save_model(model, model_name)
+
+history = pd.DataFrame(history.history)
+history[['mean_absolute_error', 'val_mean_absolute_error']].plot(grid=True)
+#plt.show()
+plt.savefig(os.path.join(root_dir, model_name + '.pdf'))
 
 ################################################################################
