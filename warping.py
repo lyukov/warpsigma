@@ -1,8 +1,13 @@
 ################################################################################
 
-import numpy as np
 from math import floor
 from progressbar import ProgressBar
+from skimage.color import rgb2gray
+from skimage.io import imread, imsave, imshow
+import keras
+import matplotlib.pyplot as plt
+import numpy as np
+import os
 
 ################################################################################
 
@@ -13,6 +18,9 @@ def k_from_sigma(s):
 
 def sigma_from_k(k):
     return 2 ** (k / 4 - 1)
+
+def mse(a, b):
+    return np.sqrt(((a - b) ** 2).sum())
 
 ################################################################################
 
@@ -39,10 +47,10 @@ def restore_ij(i, j, sigma, restored_list):
     floor_n = floor(image_n)
     if (floor_n >= len(restored_list) - 1):
         floor_n = len(restored_list) - 2
-    delta_n = sigma - floor_s
+    delta_n = sigma - floor_n
     # Linear interpolation
-    return restored_list[floor_n + 1][i, j] * delta_n +
-           restored_list[floor_n][i, j] * (1 - delta_n)
+    return (restored_list[floor_n + 1][i, j] * delta_n +
+           restored_list[floor_n][i, j] * (1 - delta_n))
 
 def restore(img, sigma_map, restored_list):
     new_sigma_map = np.zeros(img.shape)
@@ -58,7 +66,7 @@ def restore(img, sigma_map, restored_list):
     for i in range(img.shape[0]):
         for j in range(img.shape[1]):
             result[i, j] = restore_ij(i, j, new_sigma_map[i, j], restored_list)
-        progressbar.update(i + 1)
+        progress_bar.update(i + 1)
     return result
 
 ################################################################################
@@ -79,8 +87,12 @@ def load_model(name):
     loaded_model = keras.models.model_from_json(loaded_model_json)
     # load weights into new model
     loaded_model.load_weights(os.path.join(model_dir, name + ".h5"))
+    return loaded_model
 
 ################################################################################
+
+# Model loading
+model = load_model('model8')
 
 # Image loading
 s_img_num = '21'
@@ -93,14 +105,10 @@ distorted = rgb2gray(imread(dist_path))
 
 restored_list = list(map(
     lambda x:
-        img_path = restored_dir + '/warp_' + str(x) +
-                   '/level1_src_i' + s_img_num + 'ring.png'
-        rgb2gray(imread(img_path)),
+        rgb2gray(imread(restored_dir + '/warp_' + str(x) +
+                   '/level1_src_i' + s_img_num + 'ring.png')),
     available_sigmas
     ))
-
-# Model loading
-model = load_model('model8')
 
 # Restore image
 k_map = get_k_map(distorted, model, 31, 31)

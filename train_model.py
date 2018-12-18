@@ -1,17 +1,17 @@
 ################################################################################
 
-import numpy as np
-from skimage.io import imread, imsave, imshow
-import matplotlib.pyplot as plt
-import pandas as pd
-import os
-from skimage.color import rgb2gray
-import math
-import keras
-from keras.models import Sequential
-from keras.layers import Dense, Activation, Flatten, Dropout
-from keras.layers import Convolution2D, MaxPooling2D
 from keras.callbacks import CSVLogger
+from keras.layers import Convolution2D, MaxPooling2D
+from keras.layers import Dense, Activation, Flatten, Dropout
+from keras.models import Sequential
+from skimage.color import rgb2gray
+from skimage.io import imread, imsave, imshow
+import keras
+import math
+import matplotlib.pyplot as plt
+import numpy as np
+import os
+import pandas as pd
 
 np.random.seed(42)
 
@@ -108,6 +108,7 @@ def load_model(name):
     loaded_model = keras.models.model_from_json(loaded_model_json)
     # load weights into new model
     loaded_model.load_weights(os.path.join(model_dir, name + ".h5"))
+    return loaded_model
 
 ################################################################################
 

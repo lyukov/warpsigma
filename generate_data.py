@@ -9,15 +9,15 @@
 # Dmitry Lyukov, 2018
 ################################################################################
 
-import numpy as np
-from skimage.io import imread, imsave, imshow
-import matplotlib.pyplot as plt
-import pandas as pd
-import os
-from math import sqrt
-from skimage.color import rgb2gray
 from extract_patches import create_patch_coords_generator
 from extract_patches import create_patch_coords_generator_from_mse_dispersion
+from scipy.ndimage.filters import gaussian_filter
+from skimage.color import rgb2gray
+from skimage.io import imread, imsave, imshow
+import matplotlib.pyplot as plt
+import numpy as np
+import os
+import pandas as pd
 import progressbar as pbar
 
 ################################################################################
@@ -67,7 +67,7 @@ def create_patch_generator(ref_img, dist_img, restored_imgs, W, H):
 ################################################################################
 
 def mse(a, b):
-    return sqrt(((a - b) ** 2).sum())
+    return np.sqrt(((a - b) ** 2).sum())
 
 # returns sigma of nearest restored
 def get_label(ref, restored_list):
