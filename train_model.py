@@ -4,6 +4,7 @@ from keras.callbacks import CSVLogger
 from keras.layers import Convolution2D, MaxPooling2D
 from keras.layers import Dense, Activation, Flatten, Dropout
 from keras.models import Sequential
+from keras.optimizers import Adam
 from skimage.color import rgb2gray
 from skimage.io import imread, imsave, imshow
 import keras
@@ -155,14 +156,14 @@ validation_generator = DataGenerator(validation, labels, **params)
 
 # Design model
 model = Sequential()
-model.add(Convolution2D(32, (3, 3), activation='relu', input_shape=(31, 31, 1),
+model.add(Convolution2D(32, (4, 4), activation='relu', input_shape=(31, 31, 1),
     kernel_initializer='normal'))
 model.add(Convolution2D(32, (3, 3), activation='relu',
     kernel_initializer='normal'))
-model.add(MaxPooling2D())
+model.add(MaxPooling2D(pool_size=(2,2), strides=(2,2)))
 model.add(Dropout(0.25))
 
-model.add(Convolution2D(128, (13, 13), activation='relu',
+model.add(Convolution2D(64, (13, 13), activation='relu',
     kernel_initializer='normal'))
 model.add(Dropout(0.1))
 model.add(Convolution2D(17, (1, 1), activation='relu',
@@ -175,8 +176,9 @@ model.add(Flatten())
 print('Output shape:', model.output_shape)
 print('Parameters:', model.count_params())
 
+adam = Adam(lr=0.0003)
 model.compile(loss='mean_squared_error',
-              optimizer='adam',
+              optimizer=adam,
               metrics=['mean_absolute_error'])
 
 ################################################################################
