@@ -78,6 +78,42 @@ def restore(img, sigma_map, restored_list):
 
 ################################################################################
 
+def predict_for_full_image(img, model):
+    k_map = model.predict(img.reshape(1, *img.shape, 1))
+    k_map = k_map.reshape(k_map.shape[1:-1])
+    sigma_map = sigma_from_k(k_map)
+    return sigma_map
+
+def get_sigma_map(img, model):
+    sigma_map = np.zeros(img.shape)
+    of = 15 # offset
+
+    tmp_sigma_map = predict_for_full_image(img[0:, 0:], model)
+    tmp_shape = tmp_sigma_map.shape
+    sigma_map[of: of + tmp_shape[0] * 2: 2,
+              of: of + tmp_shape[1] * 2: 2] = tmp_sigma_map
+
+    tmp_sigma_map = predict_for_full_image(img[0:, 1:], model)
+    tmp_shape = tmp_sigma_map.shape
+    sigma_map[of: of + tmp_shape[0] * 2: 2,
+              of + 1: of + 1 + tmp_shape[1] * 2: 2] = tmp_sigma_map
+
+    tmp_sigma_map = predict_for_full_image(img[1:, 0:], model)
+    tmp_shape = tmp_sigma_map.shape
+    sigma_map[of + 1: of + 1 + tmp_shape[0] * 2: 2,
+              of: of + tmp_shape[1] * 2: 2] = tmp_sigma_map
+
+    tmp_sigma_map = predict_for_full_image(img[1:, 1:], model)
+    tmp_shape = tmp_sigma_map.shape
+    sigma_map[of + 1: of + 1 + tmp_shape[0] * 2: 2,
+              of + 1: of + 1 + tmp_shape[1] * 2: 2] = tmp_sigma_map
+
+    sigma_map = np.pad(sigma_map[of: -of, of: -of], of, mode='edge')
+
+    return sigma_map
+
+################################################################################
+
 root_dir      = '.'
 data_dir      = os.path.join(root_dir, 'data')
 ref_dir       = os.path.join(data_dir, 'reference')
