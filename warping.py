@@ -6,6 +6,7 @@ from keras.layers import Convolution2D, MaxPooling2D
 from keras.layers import Dense, Activation, Flatten, Dropout
 from keras.models import Sequential
 from keras.optimizers import Adam
+from math import floor
 from scipy.ndimage.filters import gaussian_filter
 from skimage.color import rgb2gray
 from skimage.io import imread, imsave, imshow
@@ -53,7 +54,7 @@ def restore_ij(i, j, sigma, restored_list):
     image_n = (sigma - 0.5) * 2
     floor_n = floor(image_n)
     if (floor_n >= len(restored_list) - 1):
-        floor_n = len(restored_list) - 2
+        return restored_list[-1][i, j]
     delta_n = sigma - floor_n
     # Linear interpolation
     return (restored_list[floor_n + 1][i, j] * delta_n +
@@ -111,6 +112,18 @@ def get_sigma_map(img, model):
     sigma_map = np.pad(sigma_map[of: -of, of: -of], of, mode='edge')
 
     return sigma_map
+
+def fast_restore(img, model, restored_list):
+    sigma_map = get_sigma_map(img, model)
+
+    result = np.zeros(img.shape)
+    progress_bar = ProgressBar(img.shape[0])
+    progress_bar.start()
+    for i in range(img.shape[0]):
+        for j in range(img.shape[1]):
+            result[i, j] = restore_ij(i, j, sigma_map[i, j], restored_list)
+        progress_bar.update(i + 1)
+    return result
 
 ################################################################################
 
