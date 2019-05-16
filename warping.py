@@ -10,6 +10,7 @@ from math import floor
 from scipy.ndimage.filters import gaussian_filter
 from skimage.color import rgb2gray
 from skimage.io import imread, imsave, imshow
+from skimage.measure import compare_ssim as ssim
 import keras
 import matplotlib.pyplot as plt
 import numpy as np
@@ -148,28 +149,45 @@ def load_model(name):
 ################################################################################
 
 # Model loading
-model = load_model('model8')
+model = Sequential()
+model.add(Convolution2D(32, (4, 4), activation='relu', input_shape=(None, None, 1)))
+model.add(Convolution2D(32, (3, 3), activation='relu'))
+model.add(MaxPooling2D(pool_size=(2, 2), strides=(2, 2)))
+model.add(Convolution2D(64, (13, 13), activation='relu'))
+model.add(Convolution2D(1, (1, 1), activation='relu'))
+adam = Adam(lr=0.0003)
+model.compile(optimizer=adam, loss='mean_squared_error', metrics=['mean_absolute_error'])
+model.load_weights('models/model14.h5')
 
-# Image loading
-s_img_num = '21'
+for s_img_num in ['21', '22', '23', '24']:
+    # Image loading
+    ref_path  = os.path.join(ref_dir, 'I' + s_img_num + '.BMP')
+    reference = rgb2gray(imread(ref_path))
 
-ref_path  = os.path.join(ref_dir, 'I' + s_img_num + '.BMP')
-reference = rgb2gray(imread(ref_path))
+    dist_path = os.path.join(distorted_dir, 'level1_src_i' + s_img_num + 'ring.png')
+    distorted = rgb2gray(imread(dist_path))
 
-dist_path = os.path.join(distorted_dir, 'level1_src_i' + s_img_num + 'ring.png')
-distorted = rgb2gray(imread(dist_path))
+    restored_list = list(map(
+        lambda x:
+            rgb2gray(imread(restored_dir + '/warp_' + str(x) +
+                       '/level1_src_i' + s_img_num + 'ring.png')),
+        available_sigmas
+        ))
 
-restored_list = list(map(
-    lambda x:
-        rgb2gray(imread(restored_dir + '/warp_' + str(x) +
-                   '/level1_src_i' + s_img_num + 'ring.png')),
-    available_sigmas
-    ))
+    # Restore image
+    restored = fast_restore(distorted, model, restored_list)
+    restored = np.clip(restored, 0, 1)
 
-# Restore image
-k_map = get_k_map(distorted, model, 31, 31)
-sigma_map = sigma_from_k(k_map)
+    print(s_img_num)
+    print('MSE(ref, dist)', mse(reference, distorted))
+    print('MSE(ref, rest)', mse(reference, restored))
+    print('SSIM(ref, dist)', ssim(reference, distorted, data_range=1, gaussian_weights=True))
+    print('SSIM(ref, rest)', ssim(reference, restored, data_range=1, gaussian_weights=True))
 
-restored = restore(distorted, sigma_map, restored_list)
+    #fig, ax = plt.subplots(figsize=(18, 10))
+    imsave('restored' + s_img_num + '_14.png', np.column_stack((
+        reference,
+        distorted,
+        restored)))
 
 ################################################################################
